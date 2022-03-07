@@ -198,7 +198,7 @@ void HandleConnection(
 
 }
 
-int main1()
+int main()
 {
     /*Context context;
     Context::Work work(context);
