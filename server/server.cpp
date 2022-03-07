@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <queue>
 #include <boost/asio.hpp>
 #include <boost/asio/use_future.hpp>
 #include <boost/asio/placeholders.hpp>
@@ -6,6 +7,128 @@
 #include <boost/thread.hpp>
 #include <string>
 #include <thread>
+
+class Context
+{
+    using Task = std::function<void()>;
+
+public:
+    class Work;
+    class Strand;
+
+    Context()
+        : m_isWorking(false)
+    {
+    }
+
+	void post(Task task)
+	{
+        boost::unique_lock<boost::shared_mutex> tasksLock(m_tasksChange);
+		m_tasks.push(task);
+	}
+
+    void poll()
+	{
+        Task task;
+        {
+            boost::upgrade_lock<boost::shared_mutex> sharedTasksLock(m_tasksChange);
+            if (m_tasks.empty())
+                return;
+
+            boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueTasksLock(sharedTasksLock);
+            task = m_tasks.front();
+            m_tasks.pop();
+
+           /* {
+                boost::shared_lock<boost::shared_mutex> tasksLock(m_tasksChange);
+                if (m_tasks.empty())
+                    return;
+            }
+
+	        {
+		        boost::unique_lock<boost::shared_mutex> tasksLock(m_tasksChange);
+            	task = m_tasks.front();
+            	m_tasks.pop();
+	        }*/
+        }
+        task();
+	}
+
+    void run()
+    {
+        bool empty = false;
+	    do 
+	    {
+            {
+                boost::shared_lock<boost::shared_mutex> tasksLock(m_tasksChange);
+                empty = m_tasks.empty();
+            }
+            poll();
+        } while (!empty || m_isWorking);
+    }
+
+private:
+    boost::shared_mutex m_tasksChange;
+
+    std::queue<Task> m_tasks;
+    bool m_isWorking;
+};
+
+class Context::Work
+{
+public:
+    Work(Context& context)
+	    : m_context(context)
+    {
+        m_context.m_isWorking = true;
+    }
+    ~Work()
+    {
+        m_context.m_isWorking = false;
+    }
+private:
+    Context& m_context;
+};
+
+class Context::Strand
+{
+public:
+    Strand(Context& context)
+        : m_context(context)
+		, m_task(nullptr)
+		, thread([this]() { Run(); })
+    {
+    }
+
+    void post(Task task)
+    {
+        m_tasks.push(task);
+        // m_context.post(task);
+
+    }
+    
+private:
+    void Run()
+    {
+        while (true)
+        {
+            if (!m_tasks.empty())
+            {
+                auto& task = m_tasks.front();
+                bool& isProcessed = m_context.post(task);
+                while (!isProcessed)
+                {
+                }
+            }
+        }
+    }
+
+    std::queue<Task> m_tasks;
+    Context& m_context;
+    boost::thread thread;
+
+    Task* m_task;
+};
 
 void ClientSession(std::shared_ptr<boost::asio::ip::tcp::socket> sock)
 {
@@ -50,10 +173,16 @@ void ClientSession(std::shared_ptr<boost::asio::ip::tcp::socket> sock)
 
 }
 
-void HandleConnection(boost::asio::io_context& context, boost::asio::ip::tcp::acceptor &acc, std::shared_ptr<boost::asio::ip::tcp::socket> sock, boost::system::error_code ec)
+void HandleConnection(
+    boost::asio::io_context& context, 
+    boost::asio::ip::tcp::acceptor &acc, 
+    std::shared_ptr<boost::asio::ip::tcp::socket> sock, 
+    boost::system::error_code ec)
 {
     auto sock = std::make_shared<boost::asio::ip::tcp::socket>(boost::asio::make_strand(context));
-    acc.async_accept(*sock, boost::bind(&HandleConnection, std::ref(acc), sock, boost::asio::placeholders::error));
+    acc.async_accept(*sock, 
+        boost::bind(&HandleConnection, std::ref(context), std::ref(acc), sock, boost::asio::placeholders::error));
+
     /*
     [sock](boost::system::error_code ec)
     {
@@ -69,11 +198,14 @@ void HandleConnection(boost::asio::io_context& context, boost::asio::ip::tcp::ac
 
 }
 
-int main()
+int main1()
 {
+    /*Context context;
+    Context::Work work(context);
+    Context::Strand strand(context);*/
+
     boost::asio::io_context context;
     auto work = std::make_unique<boost::asio::io_context::work>(context);
-
     boost::thread runner {
         [&context]
         {
@@ -87,7 +219,7 @@ int main()
 		    }
         }
     };
-    boost::thread runner2{
+    boost::thread runner2 {
         [&context]
         {
             try
