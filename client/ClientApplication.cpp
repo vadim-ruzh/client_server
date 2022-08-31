@@ -1,18 +1,23 @@
 #include "ClientApplication.hpp"
 #include <iostream>
 
-ClientApplication::ClientApplication(): mWork(true)
+ClientApplication::ClientApplication(): mWork(false)
 {
 
 }
 
 void ClientApplication::Start(const std::string& address, const std::string& service)
 {
-	std::thread input([this](){startUserInput();});
-	std::thread output([this, &address, &service](){startNetworkOutput(address, service);});
+	if (!mWork.exchange(true))
+	{
+		std::thread input([this]()
+		{ startUserInput(); });
+		std::thread output([this, &address, &service]()
+		{ startNetworkOutput(address, service); });
 
-	input.join();
-	output.join();
+		input.join();
+		output.join();
+	}
 }
 
 void ClientApplication::Stop()
