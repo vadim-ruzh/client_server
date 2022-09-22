@@ -12,3 +12,8 @@ _deps
 .idea/
 .vscode/
 cmake-build-debug/
+/ServerApplication/cmake-build-release/
+/cmake-build-release/
+/ClientApplication/cmake-build-release/
+/Message/cmake-build-release/
+/ProcSignalGuard/cmake-build-release/
