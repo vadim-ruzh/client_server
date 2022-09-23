@@ -13,6 +13,12 @@ void NetworkProcessorrr::StartTcpClient(std::string_view address, std::string_vi
 
 void NetworkProcessorrr::SendMessage(std::string_view message)
 {
+	// CRITICAL: manual lock is awful, prefer:
+	// {
+	// lock_guard lock{mMutex};
+	// mBuffer.emplace
+	// }
+	// mCv.notify_one();
 	mMutex.lock();
 	mBuffer.emplace(message);
 	mMutex.unlock();
@@ -25,7 +31,7 @@ void NetworkProcessorrr::RunProcessing()
 	{
 		std::unique_lock<std::mutex> mBufferLock(mMutex);
 		mCv.wait(mBufferLock, [this]()
-		{ return !mBuffer.empty() || mStop; });
+			{ return !mBuffer.empty() || mStop; });
 
 		if (!mBuffer.empty())
 		{

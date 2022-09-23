@@ -15,6 +15,7 @@ void UserInputProcessor::StopProcessing()
 	mContext.stop();
 }
 
+// CRITICAL: better naming - PostAsyncTaskThatReadingUserInput
 void UserInputProcessor::ReadUserInput()
 {
 	boost::asio::async_read_until(mStdInDescriptor, boost::asio::dynamic_buffer(line), '\n',

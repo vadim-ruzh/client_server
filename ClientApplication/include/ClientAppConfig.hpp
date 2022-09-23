@@ -10,8 +10,10 @@
 
 struct ClientAppConfig
 {
+	// TODO: better naming - ipAddress
 	std::string address;
 	uint16_t port;
+	// CRITICAL: better naming - connectionAwaitingTimeoutMs
 	size_t waitConnection;
 	size_t reconnectionAttempts;
 };

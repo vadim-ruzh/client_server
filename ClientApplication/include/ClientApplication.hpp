@@ -16,12 +16,14 @@ class ClientApplication
  public:
 	ClientApplication();
 
+	// TODO: better naming - Start
 	void Launch(ClientAppConfig&& config);
 
 	void Stop();
  private:
 	void StartUserInputProcessor();
 	void StartNetworkProcessor();
+	// CRITICAL: better naming - StartAwaitingOfStopSignal
 	void StartWaitStopSignal();
 
 	void StopAllServices();
@@ -30,7 +32,9 @@ class ClientApplication
 	ProcSignalGuard mSignalGuard;
 	UserInputProcessor mInputProcessor;
 	NetworkProcessorrr mNetworkProcessor;
+	// TODO: better naming - inputWorker
 	std::thread input;
+	// TODO: better naming - outputWorker
 	std::thread output;
 };
 

@@ -2,8 +2,10 @@
 
 ClientAppConfig GetClientAppConfig(int argc, char* argv[], const ClientAppConfig& defaultSettings)
 {
+	// TODO: better naming: resultConfig
 	ClientAppConfig actualConfig = defaultSettings;
 
+	// CRITICAL: better naming - possibleOptions
 	static struct option longOptions[] =
 		{
 			{ "address", required_argument, nullptr, 'a' },
@@ -15,6 +17,7 @@ ClientAppConfig GetClientAppConfig(int argc, char* argv[], const ClientAppConfig
 		};
 
 	int optIndex;
+	// TODO: better naming - selectedOption
 	int option;
 	while ((option = getopt_long(argc, argv, "a:p:w:r:dh", longOptions, &optIndex)) != EOF)
 	{
@@ -22,6 +25,7 @@ ClientAppConfig GetClientAppConfig(int argc, char* argv[], const ClientAppConfig
 		{
 		case 'a':
 		{
+			// TODO: validate address via regex for axample
 			actualConfig.address = optarg;
 			break;
 		}
@@ -32,11 +36,13 @@ ClientAppConfig GetClientAppConfig(int argc, char* argv[], const ClientAppConfig
 		}
 		case 'w':
 		{
+			// TODO: is ::waitConnection dead code? It isn't using, then delete it
 			actualConfig.waitConnection = std::stoul(optarg);
 			break;
 		}
 		case 'r':
 		{
+			// TODO: is ::reconnectionAttempts dead code? It isn't using, then delete it
 			actualConfig.reconnectionAttempts = std::stoul(optarg);
 			break;
 		}

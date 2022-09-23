@@ -1,6 +1,7 @@
 #include "ClientApplication.hpp"
 #include <iostream>
 
+// TODO: better use anonimous namepsace
 namespace detail
 {
 	void replaceEvenValues(std::string& str, const char* newValue)
@@ -19,6 +20,7 @@ namespace detail
 	}
 }
 
+// TODO: too long line
 ClientApplication::ClientApplication() : mStop(true), mSignalGuard({ SIGINT, SIGTERM, SIGQUIT, SIG_BLOCK })
 {
 
@@ -26,8 +28,13 @@ ClientApplication::ClientApplication() : mStop(true), mSignalGuard({ SIGINT, SIG
 
 void ClientApplication::StartUserInputProcessor()
 {
+	// CRITICAL: check already connected?
 	mInputProcessor.onNewMessage.connect([this](std::string message)
 	{
+		// TODO: reduce nesting via invert if statement: 
+		// if (std::none_of(message.begin(), message.end(), isdigit) 
+		//		|| message.size() >= 64)
+		// return;
 	  if (std::all_of(message.begin(), message.end(), isdigit) && message.size() < 64)
 	  {
 		  std::sort(message.begin(), message.end(), std::less<>());
@@ -38,6 +45,7 @@ void ClientApplication::StartUserInputProcessor()
 	  }
 	});
 
+	// CRITICAL: check already started?
 	input = std::thread([this]()
 	{
 	  try
@@ -54,6 +62,7 @@ void ClientApplication::StartUserInputProcessor()
 
 void ClientApplication::StartNetworkProcessor()
 {
+	// CRITICAL: check already connected?
 	mNetworkProcessor.onNewMessage.connect([](std::string& message)
 	{
 	  std::cout << message << std::endl;
@@ -70,8 +79,10 @@ void ClientApplication::StartNetworkProcessor()
 	  message = std::to_string(summ);
 	});
 
+	// TODO: customize ip and port?
 	mNetworkProcessor.StartTcpClient("127.0.0.1","8787");
 
+	// CRITICAL: check already started?
 	output = std::thread([this]()
 	{
 	  try
@@ -115,6 +126,7 @@ void ClientApplication::StopAllServices()
 
 void ClientApplication::Launch(ClientAppConfig&& config)
 {
+	// TODO: reduce nesting via invert if statement: if(mStop.exchange(false)) { return; }
 	if (mStop.exchange(false))
 	{
 		try
