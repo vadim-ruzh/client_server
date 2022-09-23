@@ -1,7 +1,7 @@
 #ifndef TCPSERVER_HPP_
 #define TCPSERVER_HPP_
 
-#include "СlientSessionGroup.hpp"
+#include "../src/СlientSessionGroup.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>

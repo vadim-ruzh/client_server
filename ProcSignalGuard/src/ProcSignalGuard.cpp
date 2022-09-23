@@ -1,4 +1,4 @@
-#include "../include/ProcSignalGuard.hpp"
+#include "ProcSignalGuard.hpp"
 
 ProcSignalGuard::ProcSignalGuard(std::initializer_list<int> signals) : mSignalSet()
 {

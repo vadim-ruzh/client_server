@@ -15,7 +15,7 @@ class TcpClient
 
 	void SetReconnectionsAttempt(size_t attempts);
 
-	void SetWaitBeforeConnection(std::chrono::seconds seconds);
+	void SetConnectionAwaitingTimeout(std::chrono::milliseconds ms);
 
 	void StartConnection(std::string_view address, std::string_view service);
 	void Disconnect();
@@ -30,9 +30,7 @@ class TcpClient
 	void Connect();
 	void Reconnect();
 
-	boost::system::error_code TrySend(const void* data, size_t size);
-
-	std::chrono::seconds mWaitBeforeConnection;
+	std::chrono::milliseconds mAwaitingTimeout;
 	size_t mReconnectionsAttempts;
 	boost::asio::io_context mContext;
 	boost::asio::ip::tcp::resolver::results_type mEndpoints;

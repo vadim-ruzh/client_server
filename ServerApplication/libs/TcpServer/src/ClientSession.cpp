@@ -18,7 +18,7 @@ ClientSession::~ClientSession()
 	}
 	catch (const boost::system::system_error& error)
 	{
-		mOwner.onError(mClientAddress,error.what());
+		mOwner.onError(mClientAddress, error.what());
 	}
 }
 
@@ -30,13 +30,13 @@ void ClientSession::Start()
 void ClientSession::ReadHeader()
 {
 	boost::asio::async_read(mSocket, boost::asio::buffer(message.Header(), message.HeaderLength()),
-		std::bind(&ClientSession::MessageLengthHandler,this,std::placeholders::_1,std::placeholders::_2));
+		std::bind(&ClientSession::MessageLengthHandler, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void ClientSession::ReadBody()
 {
-	boost::asio::async_read(mSocket, boost::asio::buffer(message.Body(),
-		message.BodyLength()),std::bind(&ClientSession::MessageHandler,this,std::placeholders::_1,std::placeholders::_2));
+	boost::asio::async_read(mSocket,boost::asio::buffer(message.Body(),message.BodyLength()),
+		std::bind(&ClientSession::ReadBodyHandler, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void ClientSession::Stop()
@@ -44,25 +44,24 @@ void ClientSession::Stop()
 	mOwner.RemoveSession(shared_from_this());
 }
 
-void ClientSession::MessageHandler(boost::system::error_code errc, size_t)
+void ClientSession::ReadBodyHandler(boost::system::error_code errc, size_t)
 {
 	if (!errc)
 	{
 		try
 		{
-			mOwner.onRequest(mClientAddress,message.DecodeBody());
+			mOwner.onRequest(mClientAddress, message.DecodeBody());
 		}
 		catch (const std::exception& ex)
 		{
-			mOwner.onError(mClientAddress,ex.what());
+			mOwner.onError(mClientAddress, ex.what());
 		}
 
-		message.Clear();
 		ReadHeader();
 	}
 	else
 	{
-		mOwner.onError(mClientAddress,errc.message());
+		mOwner.onError(mClientAddress, errc.message());
 		Stop();
 	}
 }
@@ -78,14 +77,13 @@ void ClientSession::MessageLengthHandler(boost::system::error_code errc, size_t)
 		}
 		catch (const std::exception& ex)
 		{
-			mOwner.onError(mClientAddress,ex.what());
-			message.Clear();
+			mOwner.onError(mClientAddress, ex.what());
 			ReadHeader();
 		}
 	}
 	else
 	{
-		mOwner.onError(mClientAddress,errc.message());
+		mOwner.onError(mClientAddress, errc.message());
 		Stop();
 	}
 }

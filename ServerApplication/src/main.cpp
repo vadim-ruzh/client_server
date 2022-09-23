@@ -1,9 +1,10 @@
-#include "../include/ServerApplication.hpp"
+#include <iostream>
+#include "ServerApplication.hpp"
 
 int main(int argc, char* argv[])
 {
-	ServerAppConfig ActualConfiguration = GetServerAppConfig(argc, argv,
-	ServerAppConfig // Default configuration
+	Server::Configuration ActualConfiguration = Server::GetConfiguration(argc, argv,
+	Server::Configuration // Default configuration
 	{
 		8787,
 		3,
@@ -13,8 +14,8 @@ int main(int argc, char* argv[])
 
 	std::cout << "Launching the TcpServer application" << "\n";
 
-	ServerApplication server;
-	server.Launch(std::move(ActualConfiguration));
+	Server::Application server;
+	server.Start(std::move(ActualConfiguration));
 
 	std::cout << "TcpServer application stopped " << "\n";
 

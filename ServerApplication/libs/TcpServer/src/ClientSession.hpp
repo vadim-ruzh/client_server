@@ -4,7 +4,7 @@
 #include <memory>
 #include <iostream>
 #include <boost/asio.hpp>
-#include <../../../../message/include/Message.hpp>
+#include "Message.hpp"
 
 class ClientSessionGroup;
 
@@ -26,7 +26,7 @@ class ClientSession : public std::enable_shared_from_this<ClientSession>
 
 	void MessageLengthHandler(boost::system::error_code errc, size_t);
 
-	void MessageHandler(boost::system::error_code errc, size_t);
+	void ReadBodyHandler(boost::system::error_code errc, size_t);
 
 	boost::asio::ip::tcp::socket mSocket;
 	ClientSessionGroup& mOwner;

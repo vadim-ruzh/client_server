@@ -12,92 +12,96 @@
 
 using namespace boost::log::trivial;
 
-ServerApplication::ServerApplication() :
-	mSignalGuard({ SIGINT, SIGTERM, SIGQUIT, SIG_BLOCK }),
-	mStop(true)
-{}
-
-void ServerApplication::Launch(ServerAppConfig&& config)
+namespace Server
 {
-	if (mStop.exchange(false))
+
+	Application::Application() :
+		mSignalGuard({ SIGINT, SIGTERM, SIGQUIT, SIG_BLOCK }),
+		mStop(true)
 	{
-		try
-		{
-			StartLogger(config.pathToLogFile);
-
-			StartTcpServer(config.port, config.maxConnections);
-
-			StartWorkersThread(config.workersCount);
-
-			StartWaitStopSignal();
-		}
-		catch (const std::exception& exception)
-		{
-			BOOST_LOG_SEV(mLogger, fatal) << "The TcpServer application has been stopped : " << exception.what();;
-			StopAllServices();
-		}
-	}
-}
-
-void ServerApplication::StartLogger(std::filesystem::path pathToLogFile)
-{
-	boost::log::add_file_log
-		(
-			boost::log::keywords::file_name = pathToLogFile,
-			boost::log::keywords::format = "%LineID%. [%TimeStamp%] [%Severity%] : %Message%  "
-		);
-
-	boost::log::add_common_attributes();
-}
-
-void ServerApplication::StartTcpServer(uint16_t port, size_t maxConnections)
-{
-	mServer.SetOnConnectHandler([this](std::string_view ClientAddress)
-	{
-	  BOOST_LOG_SEV(mLogger, info) << "Connecting a TcpClient with an address :" << ClientAddress;
-	});
-
-	mServer.SetOnDisconnectHandler([this](std::string_view ClientAddress)
-	{
-	  BOOST_LOG_SEV(mLogger, info) << "Disconnecting a TcpClient with an address :" << ClientAddress;
-	});
-
-	mServer.SetOnErrorHandler([this](std::string_view ClientAddress, std::string_view errorMessage)
-	{
-	  BOOST_LOG_SEV(mLogger, error) << "The TcpClient with address " << ClientAddress
-									<< " has an error :" << errorMessage;
-	});
-
-	mServer.SetOnRequestHandler([](std::string_view ClientAddress, std::string_view request)
-	{
-	  if (request.size() >= 2 && (std::stoi(request.data()) % 32 == 0))
-	  {
-		  std::cout << "Received data from a TcpClient with an address " << ClientAddress
-					<< " : " << request << "\n";
-	  }
-	  else
-	  {
-		  std::cerr << " Data from the TcpClient with the address " << ClientAddress
-					<< " is not consistent" << "\n";
-	  }
-	});
-
-	mServer.StartAcceptor(port, maxConnections);
-
-	BOOST_LOG_SEV(mLogger, info) << "TcpServer running on port : " << port;
-}
-
-void ServerApplication::StartWorkersThread(size_t workersCount)
-{
-	if (workersCount > 1)
-	{
-		mWork.emplace(boost::asio::io_context::work(mServer.GetContext()));
 	}
 
-	mWorkersGroup.reserve(workersCount);
-	for (size_t i = 0; i < workersCount; ++i)
+	void Application::Start(Configuration&& config)
 	{
-		mWorkersGroup.emplace_back([this]()
+		if (mStop.exchange(false))
+		{
+			try
+			{
+				StartLogger(config.pathToLogFile);
+
+				StartTcpServer(config.port, config.maxConnections);
+
+				StartWorkersThread(config.workersCount);
+
+				StartAwaitingOfStopSignal();
+			}
+			catch (const std::exception& exception)
+			{
+				BOOST_LOG_SEV(mLogger, fatal) << "The TcpServer application has been stopped : " << exception.what();;
+				StopAllServices();
+			}
+		}
+	}
+
+	void Application::StartLogger(std::filesystem::path pathToLogFile)
+	{
+		boost::log::add_file_log
+			(
+				boost::log::keywords::file_name = pathToLogFile,
+				boost::log::keywords::format = "%LineID%. [%TimeStamp%] [%Severity%] : %Message%  "
+			);
+
+		boost::log::add_common_attributes();
+	}
+
+	void Application::StartTcpServer(uint16_t port, size_t maxConnections)
+	{
+		mServer.SetOnConnectHandler([this](std::string_view ClientAddress)
+		{
+		  BOOST_LOG_SEV(mLogger, info) << "Connecting a TcpClient with an ipAddress :" << ClientAddress;
+		});
+
+		mServer.SetOnDisconnectHandler([this](std::string_view ClientAddress)
+		{
+		  BOOST_LOG_SEV(mLogger, info) << "Disconnecting a TcpClient with an ipAddress :" << ClientAddress;
+		});
+
+		mServer.SetOnErrorHandler([this](std::string_view ClientAddress, std::string_view errorMessage)
+		{
+		  BOOST_LOG_SEV(mLogger, error) << "The TcpClient with ipAddress " << ClientAddress
+										<< " has an error :" << errorMessage;
+		});
+
+		mServer.SetOnRequestHandler([](std::string_view ClientAddress, std::string_view request)
+		{
+		  if (request.size() >= 2 && (std::stoi(request.data()) % 32 == 0))
+		  {
+			  std::cout << "Received data from a TcpClient with an ipAddress " << ClientAddress
+						<< " : " << request << "\n";
+		  }
+		  else
+		  {
+			  std::cerr << " Data from the TcpClient with the ipAddress " << ClientAddress
+						<< " is not consistent" << "\n";
+		  }
+		});
+
+		mServer.StartAcceptor(port, maxConnections);
+
+		BOOST_LOG_SEV(mLogger, info) << "TcpServer running on service : " << port;
+	}
+
+	void Application::StartWorkersThread(size_t workersCount)
+	{
+		if (workersCount > 1)
+		{
+			mWork.emplace(boost::asio::io_context::work(mServer.GetContext()));
+		}
+
+		mWorkersGroup.reserve(workersCount);
+		for (size_t i = 0; i < workersCount; ++i)
+		{
+			mWorkersGroup.emplace_back([this]()
 			{
 			  try
 			  {
@@ -106,47 +110,45 @@ void ServerApplication::StartWorkersThread(size_t workersCount)
 			  catch (const std::exception& exception)
 			  {
 				  BOOST_LOG_SEV(mLogger, fatal) << "An error occurred in the worker: " << exception.what();
-
 				  Stop();
 			  }
-			}
-		);
+			});
+		}
+
+		BOOST_LOG_SEV(mLogger, info) << workersCount << " workers launched";
 	}
 
-	BOOST_LOG_SEV(mLogger, info) << workersCount << " workers launched";
-}
-
-void ServerApplication::StartWaitStopSignal()
-{
-	mSignalGuard.Wait([this](int signum)
+	void Application::StartAwaitingOfStopSignal()
 	{
-	  mStop = true;
-
-	  BOOST_LOG_SEV(mLogger, fatal) << "The TcpServer application has been stopped with code " << signum;
-
-	  StopAllServices();
-	});
-}
-
-void ServerApplication::Stop()
-{
-	if (!mStop.exchange(true))
-	{
-		kill(getpid(), SIGINT);
-	}
-}
-
-void ServerApplication::StopAllServices()
-{
-	mWork.reset();
-	mServer.StopProccesing();
-
-	for (std::thread& worker : mWorkersGroup)
-	{
-		if (worker.joinable())
+		mSignalGuard.Wait([this](int signum)
 		{
-			worker.join();
+		  mStop = true;
+
+		  BOOST_LOG_SEV(mLogger, fatal) << "The TcpServer application has been stopped with code " << signum;
+
+		  StopAllServices();
+		});
+	}
+
+	void Application::Stop()
+	{
+		if (!mStop.exchange(true))
+		{
+			kill(getpid(), SIGINT);
 		}
 	}
-}
 
+	void Application::StopAllServices()
+	{
+		mWork.reset();
+		mServer.StopProccesing();
+
+		for (std::thread& worker : mWorkersGroup)
+		{
+			if (worker.joinable())
+			{
+				worker.join();
+			}
+		}
+	}
+}//namespace Server

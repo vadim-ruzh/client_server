@@ -1,7 +1,7 @@
 #include "ClientApplication.hpp"
 #include <iostream>
 
-namespace detail
+namespace
 {
 	void replaceEvenValues(std::string& str, const char* newValue)
 	{
@@ -17,126 +17,142 @@ namespace detail
 
 		str = std::move(tmp);
 	}
+
+	int32_t SumOfAllNumbersInString(std::string_view str)
+	{
+		int32_t summ = 0;
+		for (const char ch : str)
+		{
+			if (isdigit(ch))
+			{
+				summ += (ch - '0');
+			}
+		}
+		return summ;
+	}
+
 }
 
-ClientApplication::ClientApplication() : mStop(true), mSignalGuard({ SIGINT, SIGTERM, SIGQUIT, SIG_BLOCK })
+namespace Client
 {
 
-}
-
-void ClientApplication::StartUserInputProcessor()
-{
-	mInputProcessor.onNewMessage.connect([this](std::string message)
+	Application::Application() :
+		mStop(true),
+		mSignalGuard({ SIGINT, SIGTERM, SIGQUIT, SIG_BLOCK })
 	{
-	  if (std::all_of(message.begin(), message.end(), isdigit) && message.size() < 64)
-	  {
-		  std::sort(message.begin(), message.end(), std::less<>());
 
-		  detail::replaceEvenValues(message, "KB");
+	}
 
-		  mNetworkProcessor.SendMessage(message);
-	  }
-	});
-
-	input = std::thread([this]()
+	void Application::StartUserInputProcessing()
 	{
-	  try
-	  {
-		  mInputProcessor.RunProcessing();
-	  }
-	  catch (const std::exception& ex)
-	  {
-		  std::cerr << "Input processor stopped with error: " << ex.what() << "\n";
-		  Stop();
-	  }
-	});
-}
-
-void ClientApplication::StartNetworkProcessor()
-{
-	mNetworkProcessor.onNewMessage.connect([](std::string& message)
-	{
-	  std::cout << message << std::endl;
-
-	  int summ = 0;
-	  for (const char ch : message)
-	  {
-		  if (isdigit(ch))
+		mInputProcessor.onNewMessage.connect([this](std::string message)
+		{
+		  if (std::all_of(message.begin(), message.end(), isdigit) && message.size() < 64)
 		  {
-			  summ += (ch - '0');
+			  std::sort(message.begin(), message.end(), std::less<>());
+
+			  replaceEvenValues(message, "KB");
+
+			  mNetworkProcessor.SendMessage(message);
 		  }
-	  }
+		});
 
-	  message = std::to_string(summ);
-	});
-
-	mNetworkProcessor.StartTcpClient("127.0.0.1","8787");
-
-	output = std::thread([this]()
-	{
-	  try
-	  {
-		  mNetworkProcessor.RunProcessing();
-	  }
-	  catch (const std::exception& ex)
-	  {
-		  std::cerr << "Input processor stopped with error: " << ex.what() << "\n";
-		  Stop();
-	  }
-	});
-}
-
-void ClientApplication::StartWaitStopSignal()
-{
-	mSignalGuard.Wait([this](int signum)
-	{
-	  mStop = true;
-
-	  StopAllServices();
-
-	  std::cerr << "Client application stopped with code: " << signum << "\n";
-	});
-}
-
-void ClientApplication::StopAllServices()
-{
-	mInputProcessor.StopProcessing();
-	if (input.joinable())
-	{
-		input.join();
+		inputWorker = std::thread([this]()
+		{
+		  try
+		  {
+			  mInputProcessor.RunProcessing();
+		  }
+		  catch (const std::exception& exception)
+		  {
+			  std::cerr << "Input processor stopped with error: " << exception.what() << "\n";
+			  Stop();
+		  }
+		});
 	}
 
-	mNetworkProcessor.StopProcessing();
-	if (output.joinable())
+	void Application::StartNetworkTrafficProcessing(const Configuration& config)
 	{
-		output.join();
-	}
-}
+		mNetworkProcessor.onNewMessage.connect([](std::string& message)
+		{
+		  std::cout << message << std::endl;
 
-void ClientApplication::Launch(ClientAppConfig&& config)
-{
-	if (mStop.exchange(false))
+		  message = std::to_string(SumOfAllNumbersInString(message));
+		});
+
+		mNetworkProcessor.StartTcpClient(
+			config.ipAddress, config.service,
+			config.reconnectionAttempts, config.connectionAwaitingTimeoutMs);
+
+		outputWorker = std::thread([this]()
+		{
+		  try
+		  {
+			  mNetworkProcessor.RunProcessing();
+		  }
+		  catch (const std::exception& exception)
+		  {
+			  std::cerr << "Input processor stopped with error: " << exception.what() << "\n";
+			  Stop();
+		  }
+		});
+	}
+
+	void Application::StartAwaitingOfStopSignal()
 	{
+		mSignalGuard.Wait([this](int signum)
+		{
+		  mStop = true;
+
+		  StopAllServices();
+
+		  std::cerr << "Client application stopped with code: " << signum << "\n";
+		});
+	}
+
+	void Application::StopAllServices()
+	{
+		mInputProcessor.StopProcessing();
+		if (inputWorker.joinable())
+		{
+			inputWorker.join();
+		}
+
+		mNetworkProcessor.StopProcessing();
+		if (outputWorker.joinable())
+		{
+			outputWorker.join();
+		}
+	}
+
+	void Application::Start(Configuration&& config)
+	{
+		if (!mStop.exchange(false))
+		{
+			return;
+		}
+
 		try
 		{
-			StartUserInputProcessor();
+			StartUserInputProcessing();
 
-			StartNetworkProcessor();
+			StartNetworkTrafficProcessing(config);
 
-			StartWaitStopSignal();
+			StartAwaitingOfStopSignal();
 		}
 		catch (const std::exception& exception)
 		{
 			std::cerr << "Client application stopped with error: " << exception.what() << std::endl;
 			StopAllServices();
 		}
-	}
-}
 
-void ClientApplication::Stop()
-{
-	if (!mStop.exchange(true))
+	}
+
+	void Application::Stop()
 	{
-		kill(getpid(), SIGINT);
+		if (!mStop.exchange(true))
+		{
+			kill(getpid(), SIGINT);
+		}
 	}
 }

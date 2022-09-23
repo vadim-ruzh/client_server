@@ -12,26 +12,16 @@ add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.76.0 COMPONENTS system log REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE Boost::system Boost::log_setup Boost::log)
 
+target_link_libraries(${PROJECT_NAME} PRIVATE ProcSignalGuard)
 
-set(CMAKE_C_FLAGS " -lboost_thread ")
-set(CMAKE_CXX_FLAGS " -lboost_thread ")
-set(CMAKE_C_FLAGS " -lpthread")
-set(CMAKE_CXX_FLAGS " -lpthread")
-find_library(pthread STATIC)
-target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${ProcSignalGuard_INCLUDE_DIRS})
-target_link_directories(${PROJECT_NAME} PRIVATE ${ProcSignalGuard_LIBRARY_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${ProcSignalGuard_LIBRARIES})
-
-INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE Boost::log_setup Boost::log)
-
-add_subdirectory(libs/TcpServer)
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/libs/TcpServer/include)
-
-target_link_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib)
-
+add_subdirectory(${PROJECT_SOURCE_DIR}/libs/TcpServer)
 target_link_libraries(${PROJECT_NAME} PRIVATE TcpServer)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+        )
+

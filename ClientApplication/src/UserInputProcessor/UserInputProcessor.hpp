@@ -15,7 +15,8 @@ class UserInputProcessor
 
 	boost::signals2::signal<void(std::string)> onNewMessage;
  private:
-	void ReadUserInput();
+	void PostAsyncTaskThatReadingUserInput();
+	void ReadingUserInputHandler(const boost::system::error_code& errorCode ,size_t bytesReceived);
 
 	boost::asio::io_context mContext;
 	boost::asio::posix::stream_descriptor mStdInDescriptor;

@@ -8,15 +8,17 @@
 #include <iostream>
 #include <filesystem>
 
-struct ClientAppConfig
+namespace Client
 {
-	std::string address;
-	uint16_t port;
-	size_t waitConnection;
-	size_t reconnectionAttempts;
-};
+	struct Configuration
+	{
+		std::string ipAddress;
+		std::string service;
+		size_t connectionAwaitingTimeoutMs;
+		size_t reconnectionAttempts;
+	};
 
-ClientAppConfig GetClientAppConfig(int argc, char* argv[], const ClientAppConfig& defaultSettings);
+	Configuration GetConfiguration(int argc, char* argv[], const Configuration& defaultConfig);
 
-
+}//namespace Client
 #endif //MESSAGE_CLIENT_APP_INCLUDE_OPTIONS_HPP_

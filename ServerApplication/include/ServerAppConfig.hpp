@@ -8,15 +8,16 @@
 #include <iostream>
 #include <filesystem>
 
-struct ServerAppConfig
+namespace Server
 {
-	uint16_t port;
-	size_t workersCount;
-	size_t maxConnections;
-	std::string pathToLogFile;
-};
+	struct Configuration
+	{
+		uint16_t port;
+		size_t workersCount;
+		size_t maxConnections;
+		std::string pathToLogFile;
+	};
 
-ServerAppConfig GetServerAppConfig(int argc, char** argv, const ServerAppConfig& defaultSettings);
-
-
+	Configuration GetConfiguration(int argc, char* argv[],Configuration&& defaultConfiguration);
+}
 #endif //PROGRAMMOPTIONS_HPP_

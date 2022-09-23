@@ -1,8 +1,8 @@
-#include "../include/TcpClient.hpp"
-#include "../../../../message/include/Message.hpp"
+#include "TcpClient.hpp"
+#include "Message.hpp"
 
 TcpClient::TcpClient()
-	: mReconnectionsAttempts(5), mWaitBeforeConnection(1)
+	: mReconnectionsAttempts(5), mAwaitingTimeout(50)
 {
 }
 
@@ -30,21 +30,15 @@ void TcpClient::Send(const void* data, size_t size)
 		throw boost::system::system_error(boost::asio::error::not_connected);
 	}
 
-	boost::system::error_code sendError = TrySend(data, size);
-	if (sendError == boost::asio::error::connection_refused || sendError == boost::asio::error::connection_aborted)
+	try
+	{
+		boost::asio::write(*mConnection, boost::asio::buffer(data, size));
+	}
+	catch (const boost::system::system_error& sendError)
 	{
 		std::cerr << "The connection was broken" << std::endl;
 		Reconnect();
-
-		sendError = TrySend(data, size);
-		if (sendError)
-		{
-			std::cerr << "An error occurred while sending the Message : " << sendError.message() << std::endl;
-		}
-	}
-	if (sendError)
-	{
-		std::cerr << "An error occurred while sending the Message : " << sendError.message() << std::endl;
+		boost::asio::write(*mConnection, boost::asio::buffer(data, size));
 	}
 }
 
@@ -60,7 +54,7 @@ boost::system::error_code TcpClient::TryConnect()
 
 	for (size_t i = 0; i < mReconnectionsAttempts && mConnection.has_value(); ++i)
 	{
-		std::this_thread::sleep_for(mWaitBeforeConnection);
+		std::this_thread::sleep_for(mAwaitingTimeout);
 		boost::asio::connect(*mConnection, mEndpoints, errorCode);
 
 		if (!errorCode)
@@ -96,13 +90,6 @@ void TcpClient::Reconnect()
 	Connect();
 }
 
-boost::system::error_code TcpClient::TrySend(const void* data, size_t size)
-{
-	boost::system::error_code errorCode;
-	boost::asio::write(*mConnection, boost::asio::buffer(data, size), errorCode);
-	return errorCode;
-}
-
 void TcpClient::SendString(std::string_view string)
 {
 	Packet packet;
@@ -112,9 +99,9 @@ void TcpClient::SendString(std::string_view string)
 	Send(packet.Data(), packet.DataLength());
 }
 
-void TcpClient::SetWaitBeforeConnection(std::chrono::seconds seconds)
+void TcpClient::SetConnectionAwaitingTimeout(std::chrono::milliseconds ms)
 {
-	mWaitBeforeConnection = seconds;
+	mAwaitingTimeout = ms;
 }
 
 void TcpClient::SetReconnectionsAttempt(size_t attempts)
