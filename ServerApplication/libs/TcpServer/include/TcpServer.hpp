@@ -24,6 +24,7 @@ class TcpServer
 
 	boost::asio::io_context& GetContext();
 
+	// TODO: there is no reason for use rvalue ref, just use pass by value
 	void SetOnRequestHandler(std::function<void(std::string_view clientIpAddress,
 		std::string_view requestMessage)>&& handler);
 	void SetOnConnectHandler(std::function<void(std::string_view clientIpAddress)>&& handler);

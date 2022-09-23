@@ -15,6 +15,7 @@ class Packet
 	{
 	}
 
+	// TODO: better naming - add 'Get' prefix to getters
 	uint8_t* Data();
 	uint8_t* Header();
 	uint8_t* Body();
@@ -25,6 +26,7 @@ class Packet
 
 	void EncodePacket(std::string_view message);
 
+	// TODO: Why DecodeBody returns value, but DecodeLength returns void?
 	void DecodeLength();
 
 	std::string DecodeBody();
@@ -33,9 +35,10 @@ class Packet
  private:
 	uint8_t* Checksum();
 
-	static constexpr uint8_t headerLength = 4;
+	// TODO: better naming add 'm' prefix
+	static constexpr size_t headerLength = 4;
+	static constexpr size_t crcLength = 4;
 	uint32_t messageLength;
-	static constexpr uint8_t crcLength = 4;
 
 	std::vector<uint8_t> mBuffer;
 };

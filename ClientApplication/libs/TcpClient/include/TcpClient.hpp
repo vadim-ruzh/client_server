@@ -13,19 +13,24 @@ class TcpClient
 	TcpClient();
 	~TcpClient();
 
+	// TODO: better naming: attemptsCount
 	void SetReconnectionsAttempt(size_t attempts);
 
+	// TODO: better naming: timeoutMs
 	void SetConnectionAwaitingTimeout(std::chrono::milliseconds ms);
 
+	// CRITICAL: better naming: Connect
 	void StartConnection(std::string_view address, std::string_view service);
 	void Disconnect();
 
+	// CRITICAL: better naming: Send
 	void SendString(std::string_view string);
 
 	void Send(const void* data, size_t size);
  private:
 	void Resolve(std::string_view address, std::string_view service);
 
+	// TODO: better naming: TryToConnect
 	boost::system::error_code TryConnect();
 	void Connect();
 	void Reconnect();

@@ -9,8 +9,10 @@ class UserInputProcessor
  public:
 	UserInputProcessor();
 
+	// TODO: better naming: Run
 	void RunProcessing();
 
+	// TODO: better naming: Stop
 	void StopProcessing();
 
 	boost::signals2::signal<void(std::string)> onNewMessage;

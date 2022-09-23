@@ -13,11 +13,13 @@ class ProcSignalGuard
 
 	~ProcSignalGuard();
 
+	// TODO: use boost::noncopyble
 	ProcSignalGuard(ProcSignalGuard&&) = delete;
 	ProcSignalGuard(const ProcSignalGuard&) = delete;
 	ProcSignalGuard operator=(ProcSignalGuard&&) = delete;
 	ProcSignalGuard operator=(const ProcSignalGuard&) = delete;
 
+	// TODO: move out of class scope
 	template<typename Func>
 	void Wait(Func&& functor)
 	{
