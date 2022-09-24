@@ -11,12 +11,14 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug"
         AND NOT CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
     set(CMAKE_BUILD_TYPE "Debug")
 endif ()
+
 set(CMAKE_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY CMAKE_LIBRARY_OUTPUT_DIRECTORY)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
+set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.76.0 REQUIRED)
 if(NOT Boost_FOUND)
     if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
@@ -35,8 +37,8 @@ if(NOT Boost_FOUND)
     set(BOOST_LIBRARY_DIR ${CONAN_LIB_DIRS_BOOST})
 endif()
 
-add_subdirectory(Message)
+add_subdirectory(Packet)
 add_subdirectory(ProcSignalGuard)
-add_subdirectory(ClientApplication)
-add_subdirectory(ServerApplication)
+add_subdirectory("ClientApplication(Program_1)")
+add_subdirectory("ServerApplication(Program_2)")
 

@@ -15,3 +15,10 @@ ProcSignalGuard::~ProcSignalGuard()
 	sigprocmask(SIG_UNBLOCK, &mSignalSet, 0);
 }
 
+void ProcSignalGuard::Wait(const std::function<void(int)>& handler)
+{
+	int sig;
+	sigwait(&mSignalSet, &sig);
+	handler(sig);
+}
+

@@ -6,6 +6,10 @@
 #include <csignal>
 #include <functional>
 
+
+/**
+* @brief The class blocks signals are passed to its constructor for the whole process.
+*/
 class ProcSignalGuard
 {
  public:
@@ -18,14 +22,11 @@ class ProcSignalGuard
 	ProcSignalGuard operator=(ProcSignalGuard&&) = delete;
 	ProcSignalGuard operator=(const ProcSignalGuard&) = delete;
 
-	template<typename Func>
-	void Wait(Func&& functor)
-	{
-		int sig;
-		sigwait(&mSignalSet, &sig);
-
-		std::invoke(std::forward<Func>(functor), sig);
-	}
+	
+	/**
+	* @brief Waiting for signals, when signals occur, a handler is called.
+	*/
+	void Wait(const std::function<void(int signum)>& handler);
  private:
 	sigset_t mSignalSet;
 };
